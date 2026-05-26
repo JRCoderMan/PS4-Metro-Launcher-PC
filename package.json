@@ -1,0 +1,25 @@
+{
+  "name": "ps-dashboard",
+  "version": "1.0.0",
+  "description": "PS-style game launcher",
+  "author": "you",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "latest",
+    "electron-builder": "latest"
+  },
+  "build": {
+    "appId": "com.psdashboard.app",
+    "productName": "PS Dashboard Launcher",
+    "win": {
+      "target": "portable"
+    },
+    "files": [
+      "**/*"
+    ]
+  }
+}

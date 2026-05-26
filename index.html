@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>PS Dashboard Launcher</title>
+
+<style>
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: radial-gradient(circle, #0a0f2c, #000);
+  font-family: Arial;
+  color: white;
+}
+
+#topBar {
+  position: absolute;
+  top: 20px;
+  right: 25px;
+  display: flex;
+  gap: 20px;
+  z-index: 10;
+}
+
+#clock { font-size: 20px; }
+#gear { cursor: pointer; font-size: 22px; }
+
+.screen {
+  display: none;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+}
+
+.screen.active {
+  display: block;
+}
+
+#home {
+  position: absolute;
+  top: 50%;
+  left: 60px;
+  transform: translateY(-50%);
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.tile {
+  width: 180px;
+  height: 220px;
+  background: #222;
+  border-radius: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.tile button {
+  width: 80%;
+  padding: 5px;
+  cursor: pointer;
+}
+
+#settings {
+  padding: 60px;
+}
+
+button {
+  padding: 10px 15px;
+  margin: 8px;
+  cursor: pointer;
+}
+
+/* RENAME OVERLAY */
+#renameOverlay {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.7);
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+#renameBox {
+  background: #222;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+}
+</style>
+</head>
+
+<body>
+
+<!-- TOP -->
+<div id="topBar">
+  <div id="clock"></div>
+  <div id="gear" onclick="openSettings()">⚙</div>
+</div>
+
+<!-- HOME -->
+<div id="homeScreen" class="screen active">
+  <div id="home"></div>
+</div>
+
+<!-- SETTINGS -->
+<div id="settingsScreen" class="screen">
+  <div id="settings">
+    <h1>Settings</h1>
+
+    <button onclick="addGame()">Add Game (.exe)</button>
+    <button onclick="goHome()">Back</button>
+    <button style="background:red;color:white" onclick="turnOff()">Turn Off</button>
+  </div>
+</div>
+
+<!-- 🔥 RENAME OVERLAY -->
+<div id="renameOverlay">
+  <div id="renameBox">
+    <h3>Rename Game</h3>
+    <input id="renameInput" style="padding:8px;width:200px;">
+    <br><br>
+    <button onclick="confirmRename()">Confirm</button>
+    <button onclick="closeRename()">Cancel</button>
+  </div>
+</div>
+
+<script>
+
+const { ipcRenderer } = require("electron");
+
+let games = [];
+let renameTarget = null;
+
+/* CLOCK */
+function updateClock() {
+  const d = new Date();
+  let h = d.getHours();
+  let m = d.getMinutes();
+  const ampm = h >= 12 ? "PM" : "AM";
+
+  h = h % 12 || 12;
+  m = m < 10 ? "0" + m : m;
+
+  document.getElementById("clock").innerText =
+    `${h}:${m} ${ampm}`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+/* SCREENS */
+function show(id) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+
+function openSettings() {
+  show("settingsScreen");
+}
+
+function goHome() {
+  show("homeScreen");
+}
+
+/* LOAD */
+async function loadGames() {
+  games = await ipcRenderer.invoke("load-games") || [];
+  render();
+}
+
+/* SAVE */
+async function saveGames() {
+  await ipcRenderer.invoke("save-games", games);
+}
+
+/* RENDER */
+function render() {
+  const home = document.getElementById("home");
+  home.innerHTML = "";
+
+  games.forEach((g) => {
+    const tile = document.createElement("div");
+    tile.className = "tile";
+
+    const title = document.createElement("h3");
+    title.textContent = g.name;
+
+    const play = document.createElement("button");
+    play.innerText = "Play";
+    play.onclick = () => ipcRenderer.send("launch-exe", g.path);
+
+    const rename = document.createElement("button");
+    rename.innerText = "Rename";
+    rename.onclick = () => openRename(g);
+
+    const del = document.createElement("button");
+    del.innerText = "Delete";
+    del.onclick = () => deleteGame(g);
+
+    tile.appendChild(title);
+    tile.appendChild(play);
+    tile.appendChild(rename);
+    tile.appendChild(del);
+
+    home.appendChild(tile);
+  });
+}
+
+/* ADD GAME */
+async function addGame() {
+  const file = await ipcRenderer.invoke("pick-exe");
+  if (!file) return;
+
+  games.push({
+    name: file.split("\\").pop().replace(".exe", ""),
+    path: file
+  });
+
+  await saveGames();
+  render();
+  goHome();
+}
+
+/* 🔥 RENAME FIX (REAL UI) */
+function openRename(game) {
+  renameTarget = game;
+  document.getElementById("renameInput").value = game.name;
+  document.getElementById("renameOverlay").style.display = "flex";
+}
+
+async function confirmRename() {
+  const val = document.getElementById("renameInput").value.trim();
+
+  if (!val) {
+    alert("Name cannot be empty!");
+    return;
+  }
+
+  renameTarget.name = val;
+
+  await saveGames();
+  render();
+  closeRename();
+}
+
+function closeRename() {
+  document.getElementById("renameOverlay").style.display = "none";
+  renameTarget = null;
+}
+
+/* DELETE */
+async function deleteGame(game) {
+  games = games.filter(g => g !== game);
+  await saveGames();
+  render();
+}
+
+/* TURN OFF */
+function turnOff() {
+  ipcRenderer.send("shutdown-app");
+}
+
+loadGames();
+
+</script>
+
+</body>
+</html>
