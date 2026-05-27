@@ -7,7 +7,7 @@ This is a self-made project. Do not expect it to be perfect as it is stil very n
 Legal Notice
 
 This is an unofficial fan-made project created for nostalgia and educational purposes.
-Xbox, Xbox 360, and related names, logos, and designs are property of Sony.
+Playstation, PS4 and related names, logos, and designs are property of Sony.
 No affiliation with or endorsement by Sony is claimed or implied.
 This project is distributed free of charge.
 If any rights holder requests changes or removal, comply promptly.
