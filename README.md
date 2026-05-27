@@ -10,4 +10,4 @@ Xbox, Xbox 360, and related names, logos, and designs are property of Sony.
 No affiliation with or endorsement by Sony is claimed or implied.
 This project is distributed free of charge.
 If any rights holder requests changes or removal, comply promptly.
-Users are responsible for following local laws and platform terms when downloading or sharing.
+Users are responsible for following local laws and platform terms when downloading or sharing. 
